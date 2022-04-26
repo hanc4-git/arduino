@@ -1,0 +1,129 @@
+/*
+  Control a bi-polar stepper motor using the SparkFun ProDriver TC78H670FTG
+  By: Pete Lewis
+  SparkFun Electronics
+  Date: July 2nd, 2020
+  License: MIT. See license file for more information but you can
+  basically do whatever you want with this code.
+
+  This example does a custom setup (variable resolution) 
+  and turns the motor at different resolutions.
+  
+  Feel like supporting open source hardware?
+  Buy a board from SparkFun! https://www.sparkfun.com/products/16836
+
+  Hardware Connections:
+
+  ARDUINO --> PRODRIVER
+  D8 --> STBY
+  D7 --> EN
+  D6 --> MODE0
+  D5 --> MODE1
+  D4 --> MODE2
+  D3 --> MODE3
+  D2 --> ERR
+
+*/
+
+#include "SparkFun_ProDriver_TC78H670FTG_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_ProDriver
+PRODRIVER myProDriver; //Create instance of this object
+
+#define CW 9
+#define CCW 10
+#define OUT 11
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("Ready");
+
+  //pinMode(CW, INPUT_PULLUP);
+  //pinMode(CCW, INPUT_PULLUP);
+  //pinMode(OUT, OUTPUT);
+
+  //***** Configure the ProDriver's Settings *****//
+  // Note, we must change settings BEFORE calling the .begin() function.
+  // For this example, we will try variable 1/2 step resolution.
+  // This means we can turn the motor at full step resolution or 1/2 step resolution.
+  // And we can change between these two resolutions during operation.
+  //jnuhy777777777777777777777777 myProDriver.changeStepResolution(PRODRIVER_STEP_RESOLUTION_1_2); // change to step res 1:128
+
+
+  // The following lines of code are other options you can try out.
+  // Comment-out the above settings declaration, and uncomment your desired setting below.
+  // myProDriver.settings.stepResolutionMode = PRODRIVER_STEP_RESOLUTION_VARIABLE_1_2; // 1:1 <--> 1:2
+  // myProDriver.settings.stepResolutionMode = PRODRIVER_STEP_RESOLUTION_VARIABLE_1_4; // 1:1 <--> 1:4
+  // myProDriver.settings.stepResolutionMode = PRODRIVER_STEP_RESOLUTION_VARIABLE_1_8; // 1:1 <--> 1:8
+  // myProDriver.settings.stepResolutionMode = PRODRIVER_STEP_RESOLUTION_VARIABLE_1_16; // 1:1 <--> 1:16
+  // myProDriver.settings.stepResolutionMode = PRODRIVER_STEP_RESOLUTION_VARIABLE_1_32; // 1:1 <--> 1:32
+  // myProDriver.settings.stepResolutionMode = PRODRIVER_STEP_RESOLUTION_VARIABLE_1_64; // 1:1 <--> 1:64
+  // myProDriver.settings.stepResolutionMode = PRODRIVER_STEP_RESOLUTION_VARIABLE_1_128; // 1:1 <--> 1:128
+
+  myProDriver.begin(); // adjust custom settings before calling this
+}
+
+void loop() {
+  //Initail constants
+  //User setting constants
+  float velcocity_per_hour=1;//velocity of down in mm/hour
+  float total_distance=30;//total moving distance in cm
+  int current=100;//Applied current in %   
+
+  //Fixed constants by hardware
+  float distance_per_turn_inch=0.05;//Travel Distance per Turn of Precision Acme Lead Screws in inch
+  int motor_step=400;//Steps of the step motor
+  int step_resoution=128;//Step Resolution
+ 
+
+
+  //Conversion of units
+  float velcocity_per_second=velcocity_per_hour/3600;//velocity of down in mm/sec
+  float distance_per_turn_mm=distance_per_turn_inch*25.4;//Travel Distance per Turn of Precision Acme Lead Screws in inch
+  float total_distance_mm=total_distance*10;//total moving distance in mm  
+
+  //Calculation
+  float distance_per_step=distance_per_turn_mm/(motor_step*step_resoution);//distnace per step in mm
+  float total_time=total_distance_mm/velcocity_per_second;//total working time in sec
+  int total_step=floor(total_distance_mm/distance_per_step);//total steps during working
+  float between=floor(total_time/total_step*1000000);//time between steps in micro seconds
+
+  Serial.println("distnace per step in micro;");
+  Serial.println(distance_per_step*1000, 6);
+  Serial.println("total working time in hour:");
+  Serial.println(total_time/3600);
+  Serial.println("total steps during working: ");
+  Serial.println(total_step);
+  Serial.println("time between steps in micro seconds:");
+  Serial.println(between);
+
+  //Hardware setting
+  myProDriver.changeStepResolution(PRODRIVER_STEP_RESOLUTION_1_128); // change to step res 1:128
+  myProDriver.setCurrentLimit(1023/100*current); // max current
+
+  //Check switch
+  digitalWrite(13, HIGH);
+  int CW_rotation;
+  int CCW_rotation;
+  //Running motor
+  int count=1;
+  int count_return=1;
+  //while (count<=total_step){
+  CW_rotation=digitalRead(CW);
+  CCW_rotation=digitalRead(CCW);
+    //if(CW_roration>0&&CCW_roration=0){
+      myProDriver.step(1, 1); // turn 1 steps, CW direction
+      count++;
+      delayMicroseconds(between);
+      //}
+    //if(CW_roration=0&&CCW_roration>0){
+      //while(count_return<=count){
+        //myProDriver.step(1, 0); // turn 1 steps, CCW direction
+        //count_return++;
+        //}
+      //}
+    //if(CW_roration=0&&CCW_roration=0){
+      //myProDriver.step(0, 1); // Stop the motor
+      //}
+  //}
+
+
+}
